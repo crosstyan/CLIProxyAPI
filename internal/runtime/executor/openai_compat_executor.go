@@ -100,7 +100,10 @@ func (e *OpenAICompatExecutor) Execute(ctx context.Context, auth *cliproxyauth.A
 	}
 
 	if processor := resolveModelProcessor(auth, baseModel); processor != "" {
+		log.Debugf("Applying processor '%s' for model '%s'", processor, baseModel)
 		translated = ApplyModelProcessor(translated, processor)
+	} else {
+		log.Debugf("No processor resolved for model '%s' (auth id: %s)", baseModel, auth.ID)
 	}
 
 	url := strings.TrimSuffix(baseURL, "/") + "/chat/completions"
@@ -200,7 +203,10 @@ func (e *OpenAICompatExecutor) ExecuteStream(ctx context.Context, auth *cliproxy
 	}
 
 	if processor := resolveModelProcessor(auth, baseModel); processor != "" {
+		log.Debugf("Applying processor '%s' for model '%s'", processor, baseModel)
 		translated = ApplyModelProcessor(translated, processor)
+	} else {
+		log.Debugf("No processor resolved for model '%s' (auth id: %s)", baseModel, auth.ID)
 	}
 
 	url := strings.TrimSuffix(baseURL, "/") + "/chat/completions"

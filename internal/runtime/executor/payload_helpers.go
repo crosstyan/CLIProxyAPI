@@ -7,6 +7,7 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/thinking"
 	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/executor"
+	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -315,12 +316,14 @@ func matchModelPattern(pattern, model string) bool {
 
 // ApplyModelProcessor applies model-specific payload transformations.
 func ApplyModelProcessor(payload []byte, processor string) []byte {
+	log.Debugf("Executing payload processor: %s", processor)
 	switch strings.ToLower(strings.TrimSpace(processor)) {
 	case "kimi-k2":
 		return applyKimiK2Processor(payload)
 	case "glm":
 		return applyGLMProcessor(payload)
 	default:
+		log.Warnf("Unknown payload processor: %s", processor)
 		return payload
 	}
 }
@@ -330,11 +333,13 @@ func applyKimiK2Processor(payload []byte) []byte {
 	// Check root level first
 	effort := gjson.GetBytes(payload, "reasoning_effort").String()
 	effort = strings.ToLower(strings.TrimSpace(effort))
+	log.Debugf("Kimi K2 processor: found reasoning_effort=%s", effort)
 
 	// 2. Set thinking based on reasoning_effort
 	// If reasoning_effort is explicitly "none" or "off", disable thinking
 	if effort == "none" || effort == "off" {
 		payload, _ = sjson.SetRawBytes(payload, "thinking", []byte(`{"type":"disabled"}`))
+		log.Debug("Kimi K2 processor: thinking disabled due to reasoning_effort")
 	} else {
 		// Default to enabled for Kimi K2.5 (implied by model behavior, but explicit here)
 		// We set it to enabled unless specifically disabled
@@ -345,6 +350,7 @@ func applyKimiK2Processor(payload []byte) []byte {
 		// Let's check if reasoning_effort exists first.
 		if gjson.GetBytes(payload, "reasoning_effort").Exists() {
 			payload, _ = sjson.SetRawBytes(payload, "thinking", []byte(`{"type":"enabled"}`))
+			log.Debug("Kimi K2 processor: thinking enabled due to reasoning_effort")
 		}
 	}
 
@@ -373,7 +379,10 @@ func applyKimiK2Processor(payload []byte) []byte {
 		"metadata",            // Not supported
 		"web_search_options",  // Not supported (Kimi has its own tool)
 	} {
-		payload, _ = sjson.DeleteBytes(payload, field)
+		if gjson.GetBytes(payload, field).Exists() {
+			// log.Debugf("Kimi K2 processor: stripping field '%s'", field)
+			payload, _ = sjson.DeleteBytes(payload, field)
+		}
 	}
 	return payload
 }

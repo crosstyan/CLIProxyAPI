@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Configuration
 BINARY_NAME="cliproxyapi"
-INSTALL_DIR="/opt/homebrew/bin"
+INSTALL_DIR="/opt/homebrew/opt/cliproxyapi/bin/"
 SOURCE_DIR="./cmd/server"
 
 echo "Building ${BINARY_NAME}..."
@@ -18,7 +18,7 @@ echo "  Commit: ${COMMIT}"
 echo "  Date:    ${BUILD_DATE}"
 
 # Build with ldflags
-go build -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" \
+go build -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}' -X 'main.DefaultConfigPath=/opt/homebrew/etc/cliproxyapi.conf'" \
     -o "${BINARY_NAME}" "${SOURCE_DIR}"
 
 echo "Build complete."

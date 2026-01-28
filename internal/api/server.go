@@ -64,6 +64,7 @@ func defaultRequestLoggerFactory(cfg *config.Config, configPath string) logging.
 	} else if base := util.WritablePath(); base != "" {
 		logsDir = filepath.Join(base, "logs")
 	}
+	log.Debugf("resolved request log directory: %s", logsDir)
 	return logging.NewFileRequestLogger(cfg.RequestLog, logsDir, configDir)
 }
 

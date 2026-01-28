@@ -17,6 +17,10 @@ type SDKConfig struct {
 	// RequestLog enables or disables detailed request logging functionality.
 	RequestLog bool `yaml:"request-log" json:"request-log"`
 
+	// RequestLogDir specifies a custom directory for request log files.
+	// When empty, logs are written to "./logs" relative to the config file directory.
+	RequestLogDir string `yaml:"request-log-dir,omitempty" json:"request-log-dir,omitempty"`
+
 	// APIKeys is a list of keys for authenticating clients to this proxy server.
 	APIKeys []string `yaml:"api-keys" json:"api-keys"`
 

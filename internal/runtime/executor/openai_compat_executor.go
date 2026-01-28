@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,6 +97,10 @@ func (e *OpenAICompatExecutor) Execute(ctx context.Context, auth *cliproxyauth.A
 	translated, err = thinking.ApplyThinking(translated, req.Model, from.String(), to.String(), e.Identifier())
 	if err != nil {
 		return resp, err
+	}
+
+	if processor := resolveModelProcessor(auth, baseModel); processor != "" {
+		translated = ApplyModelProcessor(translated, processor)
 	}
 
 	url := strings.TrimSuffix(baseURL, "/") + "/chat/completions"
@@ -192,6 +197,10 @@ func (e *OpenAICompatExecutor) ExecuteStream(ctx context.Context, auth *cliproxy
 	translated, err = thinking.ApplyThinking(translated, req.Model, from.String(), to.String(), e.Identifier())
 	if err != nil {
 		return nil, err
+	}
+
+	if processor := resolveModelProcessor(auth, baseModel); processor != "" {
+		translated = ApplyModelProcessor(translated, processor)
 	}
 
 	url := strings.TrimSuffix(baseURL, "/") + "/chat/completions"
@@ -386,3 +395,18 @@ func (e statusErr) Error() string {
 }
 func (e statusErr) StatusCode() int            { return e.code }
 func (e statusErr) RetryAfter() *time.Duration { return e.retryAfter }
+
+func resolveModelProcessor(auth *cliproxyauth.Auth, model string) string {
+	if auth == nil || auth.Attributes == nil {
+		return ""
+	}
+	raw := auth.Attributes["model_processors"]
+	if raw == "" {
+		return ""
+	}
+	var processors map[string]string
+	if err := json.Unmarshal([]byte(raw), &processors); err != nil {
+		return ""
+	}
+	return processors[strings.ToLower(strings.TrimSpace(model))]
+}

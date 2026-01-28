@@ -1,10 +1,12 @@
 package synthesizer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/watcher/diff"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 )
@@ -221,6 +223,9 @@ func (s *ConfigSynthesizer) synthesizeOpenAICompat(ctx *SynthesisContext) []*cor
 			if hash := diff.ComputeOpenAICompatModelsHash(compat.Models); hash != "" {
 				attrs["models_hash"] = hash
 			}
+			if processorsJSON := serializeModelProcessors(compat.Models); processorsJSON != "" {
+				attrs["model_processors"] = processorsJSON
+			}
 			addConfigHeadersToAttrs(compat.Headers, attrs)
 			a := &coreauth.Auth{
 				ID:         id,
@@ -251,6 +256,9 @@ func (s *ConfigSynthesizer) synthesizeOpenAICompat(ctx *SynthesisContext) []*cor
 			}
 			if hash := diff.ComputeOpenAICompatModelsHash(compat.Models); hash != "" {
 				attrs["models_hash"] = hash
+			}
+			if processorsJSON := serializeModelProcessors(compat.Models); processorsJSON != "" {
+				attrs["model_processors"] = processorsJSON
 			}
 			addConfigHeadersToAttrs(compat.Headers, attrs)
 			a := &coreauth.Auth{
@@ -316,4 +324,27 @@ func (s *ConfigSynthesizer) synthesizeVertexCompat(ctx *SynthesisContext) []*cor
 		out = append(out, a)
 	}
 	return out
+}
+
+func serializeModelProcessors(models []config.OpenAICompatibilityModel) string {
+	if len(models) == 0 {
+		return ""
+	}
+	processors := make(map[string]string)
+	hasProcessors := false
+	for _, model := range models {
+		proc := strings.TrimSpace(model.Processor)
+		if proc != "" {
+			processors[strings.ToLower(strings.TrimSpace(model.Name))] = proc
+			hasProcessors = true
+		}
+	}
+	if !hasProcessors {
+		return ""
+	}
+	data, err := json.Marshal(processors)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }

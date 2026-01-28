@@ -165,6 +165,7 @@ codex-instructions-enabled: false
 #     models: # The models supported by the provider.
 #       - name: "moonshotai/kimi-k2:free" # The actual model name.
 #         alias: "kimi-k2" # The alias used in the API.
+#         processor: "kimi-k2" # Optional built-in processor (e.g. "kimi-k2", "glm") to handle provider quirks automatically.
 
 # Vertex API keys (Vertex-compatible endpoints, use API key + base URL)
 # vertex-api-key:

@@ -312,3 +312,95 @@ func matchModelPattern(pattern, model string) bool {
 	}
 	return pi == len(pattern)
 }
+
+// ApplyModelProcessor applies model-specific payload transformations.
+func ApplyModelProcessor(payload []byte, processor string) []byte {
+	switch strings.ToLower(strings.TrimSpace(processor)) {
+	case "kimi-k2":
+		return applyKimiK2Processor(payload)
+	case "glm":
+		return applyGLMProcessor(payload)
+	default:
+		return payload
+	}
+}
+
+func applyKimiK2Processor(payload []byte) []byte {
+	// 1. Read reasoning_effort and convert to thinking
+	// Check root level first
+	effort := gjson.GetBytes(payload, "reasoning_effort").String()
+	effort = strings.ToLower(strings.TrimSpace(effort))
+
+	// 2. Set thinking based on reasoning_effort
+	// If reasoning_effort is explicitly "none" or "off", disable thinking
+	if effort == "none" || effort == "off" {
+		payload, _ = sjson.SetRawBytes(payload, "thinking", []byte(`{"type":"disabled"}`))
+	} else {
+		// Default to enabled for Kimi K2.5 (implied by model behavior, but explicit here)
+		// We set it to enabled unless specifically disabled
+		// Note: If thinking is already set, this overwrites it if reasoning_effort is present.
+		// However, if reasoning_effort is NOT present, we might want to preserve existing thinking setting?
+		// The prompt says: "none" or "off" is "thinking":{"type": "disabled"}, others "thinking": {"type": "enabled"}
+		// So if reasoning_effort is missing (empty string), it falls into "others" -> enabled.
+		// Let's check if reasoning_effort exists first.
+		if gjson.GetBytes(payload, "reasoning_effort").Exists() {
+			payload, _ = sjson.SetRawBytes(payload, "thinking", []byte(`{"type":"enabled"}`))
+		}
+	}
+
+	// 3. Delete all unsupported OpenAI-specific fields and Kimi fixed-value fields
+	// Kimi K2.5 has strict requirements on fixed fields (temperature, top_p, etc.)
+	// and does not support many standard OpenAI fields.
+	for _, field := range []string{
+		"reasoning_effort",    // Not a Kimi field (used above, now delete)
+		"temperature",         // K2.5: fixed value, rejected if set
+		"top_p",               // K2.5: fixed value, rejected if set
+		"n",                   // K2.5: fixed value, rejected if set
+		"presence_penalty",    // K2.5: fixed value, rejected if set
+		"frequency_penalty",   // K2.5: fixed value, rejected if set
+		"logit_bias",          // Not supported
+		"logprobs",            // Not supported
+		"top_logprobs",        // Not supported
+		"seed",                // Not supported
+		"service_tier",        // Not supported
+		"parallel_tool_calls", // Not supported
+		"audio",               // Not supported
+		"store",               // Not supported
+		"modalities",          // Not supported
+		"prediction",          // Not supported
+		"stream_options",      // Not supported
+		"user",                // Not supported
+		"metadata",            // Not supported
+		"web_search_options",  // Not supported (Kimi has its own tool)
+	} {
+		payload, _ = sjson.DeleteBytes(payload, field)
+	}
+	return payload
+}
+
+func applyGLMProcessor(payload []byte) []byte {
+	// Delete OpenAI-specific parameters not supported by GLM
+	for _, field := range []string{
+		"reasoning_effort",    // OpenAI o-series
+		"n",                   // OpenAI: number of completions
+		"presence_penalty",    // OpenAI penalty params
+		"frequency_penalty",
+		"logit_bias",
+		"logprobs",
+		"top_logprobs",
+		"seed",
+		"service_tier",
+		"parallel_tool_calls",
+		"audio",               // OpenAI audio param (GLM uses different model)
+		"store",
+		"modalities",
+		"prediction",
+		"stream_options",      // GLM uses different stream handling
+		"user",                // GLM uses "user_id" instead
+		"metadata",
+		"web_search_options",
+	} {
+		payload, _ = sjson.DeleteBytes(payload, field)
+	}
+	return payload
+}

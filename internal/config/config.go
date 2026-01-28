@@ -447,6 +447,9 @@ type OpenAICompatibilityModel struct {
 
 	// Alias is the model name alias that clients will use to reference this model.
 	Alias string `yaml:"alias" json:"alias"`
+
+	// Processor specifies a built-in payload processor to apply (e.g., "kimi-k2", "glm").
+	Processor string `yaml:"processor,omitempty" json:"processor,omitempty"`
 }
 
 func (m OpenAICompatibilityModel) GetName() string  { return m.Name }

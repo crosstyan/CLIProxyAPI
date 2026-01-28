@@ -58,10 +58,13 @@ type ServerOption func(*serverOptionConfig)
 
 func defaultRequestLoggerFactory(cfg *config.Config, configPath string) logging.RequestLogger {
 	configDir := filepath.Dir(configPath)
-	if base := util.WritablePath(); base != "" {
-		return logging.NewFileRequestLogger(cfg.RequestLog, filepath.Join(base, "logs"), configDir)
+	logsDir := "logs"
+	if cfg.RequestLogDir != "" {
+		logsDir = cfg.RequestLogDir
+	} else if base := util.WritablePath(); base != "" {
+		logsDir = filepath.Join(base, "logs")
 	}
-	return logging.NewFileRequestLogger(cfg.RequestLog, "logs", configDir)
+	return logging.NewFileRequestLogger(cfg.RequestLog, logsDir, configDir)
 }
 
 // WithMiddleware appends additional Gin middleware during server construction.

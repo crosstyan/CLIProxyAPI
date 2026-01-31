@@ -3,6 +3,8 @@ package util
 import (
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ApplyCustomHeadersFromAttrs applies user-defined headers stored in the provided attributes map.
@@ -47,6 +49,7 @@ func applyCustomHeaders(r *http.Request, headers map[string]string) {
 		if k == "" || v == "" {
 			continue
 		}
+		log.Debugf("[CustomHeaders] Setting header %s: %s", k, v)
 		r.Header.Set(k, v)
 	}
 }

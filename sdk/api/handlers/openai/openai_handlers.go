@@ -20,6 +20,7 @@ import (
 	codexconverter "github.com/router-for-me/CLIProxyAPI/v6/internal/translator/codex/openai/chat-completions"
 	responsesconverter "github.com/router-for-me/CLIProxyAPI/v6/internal/translator/openai/openai/responses"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/api/handlers"
+	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -97,6 +98,9 @@ func (h *OpenAIAPIHandler) OpenAIModels(c *gin.Context) {
 // Parameters:
 //   - c: The Gin context containing the HTTP request and response
 func (h *OpenAIAPIHandler) ChatCompletions(c *gin.Context) {
+	userAgent := c.GetHeader("User-Agent")
+	log.Debugf("[OpenAI] Received request to /v1/chat/completions from User-Agent: %s", userAgent)
+
 	rawJSON, err := c.GetRawData()
 	// If data retrieval fails, return a 400 Bad Request error.
 	if err != nil {

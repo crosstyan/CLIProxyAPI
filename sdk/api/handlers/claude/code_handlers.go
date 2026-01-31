@@ -63,6 +63,9 @@ func (h *ClaudeCodeAPIHandler) Models() []map[string]any {
 // Parameters:
 //   - c: The Gin context for the request.
 func (h *ClaudeCodeAPIHandler) ClaudeMessages(c *gin.Context) {
+	userAgent := c.GetHeader("User-Agent")
+	log.Debugf("[Claude] Received request to /v1/messages from User-Agent: %s", userAgent)
+
 	// Extract raw JSON data from the incoming request
 	rawJSON, err := c.GetRawData()
 	// If data retrieval fails, return a 400 Bad Request error.

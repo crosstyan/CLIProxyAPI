@@ -603,10 +603,8 @@ func (m *Manager) executeStreamWithModelPool(ctx context.Context, executor Provi
 				lastErr = emptyErr
 				continue
 			}
-			errCh := make(chan cliproxyexecutor.StreamChunk, 1)
-			errCh <- cliproxyexecutor.StreamChunk{Err: emptyErr}
-			close(errCh)
-			return m.wrapStreamResult(ctx, auth.Clone(), provider, routeModel, streamResult.Headers, nil, errCh), nil
+			// Return error to allow outer loop to retry with different auth/provider
+			return nil, emptyErr
 		}
 
 		remaining := streamResult.Chunks
@@ -1031,6 +1029,15 @@ func (m *Manager) executeMixedOnce(ctx context.Context, providers []string, req 
 				authErr = errExec
 				continue
 			}
+			// Check if response is empty - treat as retriable failure
+			if len(resp.Payload) == 0 {
+				emptyErr := &Error{Code: "empty_response", Message: "provider returned empty response"}
+				result.Success = false
+				result.Error = emptyErr
+				m.MarkResult(execCtx, result)
+				authErr = emptyErr
+				continue
+			}
 			m.MarkResult(execCtx, result)
 			return resp, nil
 		}
@@ -1101,6 +1108,15 @@ func (m *Manager) executeCountMixedOnce(ctx context.Context, providers []string,
 					return cliproxyexecutor.Response{}, errExec
 				}
 				authErr = errExec
+				continue
+			}
+			// Check if response is empty - treat as retriable failure
+			if len(resp.Payload) == 0 {
+				emptyErr := &Error{Code: "empty_response", Message: "provider returned empty response"}
+				result.Success = false
+				result.Error = emptyErr
+				m.hook.OnResult(execCtx, result)
+				authErr = emptyErr
 				continue
 			}
 			m.hook.OnResult(execCtx, result)
